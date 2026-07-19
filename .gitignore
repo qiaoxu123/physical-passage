@@ -3,3 +3,4 @@ __pycache__/
 .venv/
 results/oracle_logs/
 results/01_demos/dbg_*.png
+results/weights/qwen_lora/

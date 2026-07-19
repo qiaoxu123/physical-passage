@@ -136,11 +136,20 @@ def run_probe(agent, cfg, seed, per_side, transform=None, cam=None,
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--per-side", type=int, default=20)
+    ap.add_argument("--agent", choices=["bc", "qwen"], default="bc")
     ap.add_argument("--weights", default=str(RESULTS / "weights" / "bc_policy.pt"))
+    ap.add_argument("--lora", default=str(RESULTS / "weights" / "qwen_lora"),
+                    help="qwen agent only; pass empty string for zero-shot")
     args = ap.parse_args()
 
-    from physical_passage.agents.bc_cnn import BCAgent
-    agent = BCAgent(args.weights)
+    if args.agent == "bc":
+        from physical_passage.agents.bc_cnn import BCAgent
+        agent = BCAgent(args.weights)
+        tag = ""
+    else:
+        from physical_passage.agents.vla_qwen import QwenAgent
+        agent = QwenAgent(lora_path=args.lora or None)
+        tag = "_qwen_lora" if args.lora else "_qwen_zeroshot"
     cfg = load_config()
     rng = np.random.default_rng(9)
 
@@ -170,7 +179,7 @@ def main() -> None:
               f"{s['pos_declared']:>4d}/{s['pos_total']:<4d}      "
               f"{acc:>7.3f}   ({time.time()-t0:.0f}s)")
 
-    path = RESULTS / "metrics_anti_shortcut.json"
+    path = RESULTS / f"metrics_anti_shortcut{tag}.json"
     path.write_text(json.dumps(out, indent=2))
     print(f"\nwrote {path}")
 

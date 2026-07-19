@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.0] - 2026-07-19
+### Features(S2 LoRA 微调 Qwen2.5-VL-3B)
+- `s2_train_lora.py`(类平衡 5.9k 样本@224²,r=16 LoRA 37M 参数,标签 token 损失,25min/epoch@4090,
+  指令与 `agents/vla_qwen.py` PROMPT 严格一致)、`s2_eval.py`、`make_lora_demo.py`;
+  QwenAgent 支持 `lora_path`;反捷径套件支持 `--agent qwen`。适配器 142MB 已 gitignore(>GitHub 100MB)。
+### Notes & Caveats
+- held-out 生成准确率 0.603(DECLARE 52/52;ROTATE_Y_POS 10/54——与 CNN 同样的"何时停转"盲区)。
+- 闭环(10/10/10,seed 123):impossible 10/10 零误报;feasible 4/10;rotation 0/10(左右振荡限环);
+  131ms/步。**大模型也没跨过单斜视角感知墙**(BC-CNN 为 5/10, 1/10, 3.6ms)。
+- **反捷径对比(核心结果)**:颜色交换 CNN 0.50→**LoRA 0.975**(语言先验消除颜色捷径,靠"物体性"
+  而非颜色识别);临界孔 CNN 0.575→LoRA 0.550(**精确空间占据两者都不会**,与几何精度天花板一致);
+  基线 0.95 / 尺寸×1.35=0.925 / ×0.70=1.0 / 相机抖动 1.0;所有探针误报 0。
+- 四方对比:oracle 30/30 / 零样本 VLA 0/12(碰撞率1.0) / BC-CNN 认输10/10+控制6/20 /
+  LoRA-VLA 认输10/10+控制4/20。S1/S2 相对零样本的增益全部来自"学会认输"+一半的平移对齐。
+
 ## [0.3.0] - 2026-07-19
 ### Features(S1 行为克隆 + 反捷径测试)
 - 状态式闭环专家 `agents/expert.py`(四元数贪心旋转纠正+实时对齐重算,可重标注任意偏离状态)。

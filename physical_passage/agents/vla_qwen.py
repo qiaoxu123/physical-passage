@@ -39,11 +39,15 @@ _WORD_RE = re.compile("|".join(sorted((a for a in ACTIONS), key=len, reverse=Tru
 
 class QwenAgent:
     def __init__(self, model_path: str = "/home/xqiao/models/Qwen2.5-VL-3B-Instruct",
-                 device: str = "cuda") -> None:
+                 device: str = "cuda", lora_path: str | None = None) -> None:
         from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
         logger.info("loading %s ...", model_path)
         self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
             model_path, dtype=torch.bfloat16, device_map=device).eval()
+        if lora_path:
+            from peft import PeftModel
+            logger.info("loading LoRA adapter %s ...", lora_path)
+            self.model = PeftModel.from_pretrained(self.model, lora_path).eval()
         self.processor = AutoProcessor.from_pretrained(
             model_path, min_pixels=256 * 28 * 28, max_pixels=512 * 28 * 28)
         self.device = device
