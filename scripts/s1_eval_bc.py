@@ -40,6 +40,7 @@ def main() -> None:
 
     from physical_passage.agents.bc_cnn import BCAgent
     from physical_passage.agents.expert import env_state
+    from scripts.s1_collect_bc_data import mv_frame
     agent = BCAgent(args.weights)
 
     cfg = load_config()
@@ -60,7 +61,8 @@ def main() -> None:
         total_r = 0.0
         act_counts: collections.Counter = collections.Counter()
         for step_i in range(args.max_steps):
-            act = agent.act(obs["rgb"], env_state(env))
+            frame = mv_frame(env, obs["rgb"]) if agent.in_ch == 9 else obs["rgb"]
+            act = agent.act(frame, env_state(env))
             act_counts[ACTIONS[act]] += 1
             lat.append(agent.last_latency)
             obs, r, term, trunc, info = env.step(act)
@@ -86,7 +88,9 @@ def main() -> None:
 
     logger.close()
     env.close()
-    m = export(args.out, RESULTS / "metrics_bc")
+    stem = Path(args.out).name
+    stem = stem[:-5] if stem.endswith("_logs") else stem
+    m = export(args.out, RESULTS / f"metrics_{stem}")
     print(f"\nBC-CNN closed-loop ({time.time()-t0:.0f}s, mean step latency "
           f"{statistics.fmean(lat)*1000:.2f}ms):")
     print(f"success_rate={m['success_rate']}  collision_rate={m['collision_rate']}  "

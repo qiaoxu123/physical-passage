@@ -38,6 +38,7 @@ def main() -> None:
                     help="image-only ablation (ignore stored states)")
     ap.add_argument("--aux-weight", type=float, default=2.0,
                     help="weight of the [dx,dz,rot_rem,feasible] regression loss")
+    ap.add_argument("--out", default=str(WEIGHTS))
     args = ap.parse_args()
 
     ds = [np.load(p) for p in args.data]
@@ -71,7 +72,8 @@ def main() -> None:
     print("class weights:", {ACTIONS[i]: round(float(v), 2)
                              for i, v in enumerate(w) if counts[i] > 0})
 
-    model = PassageCNN(state_dim=s.shape[1]).to(device)
+    in_ch = x.shape[3]
+    model = PassageCNN(state_dim=s.shape[1], in_ch=in_ch).to(device)
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs)
     lossf = nn.CrossEntropyLoss(weight=torch.tensor(w, dtype=torch.float32,
@@ -115,12 +117,14 @@ def main() -> None:
             print(f"  {ACTIONS[c]:20s} {per[c,0]:5d}/{per[c,1]:5d}"
                   f"  {per[c,0]/per[c,1]:.3f}")
 
-    WEIGHTS.parent.mkdir(parents=True, exist_ok=True)
+    out_path = Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     torch.save({"model": model.state_dict(),
                 "state_dim": s.shape[1],
+                "in_ch": in_ch,
                 "val_acc": correct / total,
-                "frames": int(x.shape[0])}, WEIGHTS)
-    print(f"\nsaved {WEIGHTS}  (val_acc {correct/total:.3f})")
+                "frames": int(x.shape[0])}, out_path)
+    print(f"\nsaved {out_path}  (val_acc {correct/total:.3f})")
 
 
 if __name__ == "__main__":

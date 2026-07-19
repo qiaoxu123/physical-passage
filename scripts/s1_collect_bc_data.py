@@ -53,6 +53,19 @@ def _downsample(rgb: np.ndarray) -> np.ndarray:
                                                   Image.LANCZOS))
 
 
+def mv_frame(env: PassageEnv, obs_rgb: np.ndarray) -> np.ndarray:
+    """9-channel multi-view frame: main + front + side, each 224x224.
+
+    Perception-attribution ablation: the front view exposes dx/dz directly and
+    the side view exposes the rotation profile — if control succeeds with these
+    added, the single-oblique-view perception floor is confirmed as the wall.
+    """
+    aux = env.observer.aux_views(depth=False, seg=False)
+    return np.concatenate([_downsample(obs_rgb),
+                           _downsample(aux["front"]["rgb"]),
+                           _downsample(aux["side"]["rgb"])], axis=2)
+
+
 def _safe_noise(env: PassageEnv, rng: random.Random) -> int | None:
     """A random translation that stays in bounds and clear of the wall."""
     aabb_min, aabb_max = env.sim.client.getAABB(env.handles.cuboid)
@@ -77,8 +90,11 @@ def main() -> None:
     ap.add_argument("--rotation", type=int, default=100)
     ap.add_argument("--impossible", type=int, default=60)
     ap.add_argument("--seed", type=int, default=2024)
-    ap.add_argument("--out", default=str(DATA_DIR / "train.npz"))
+    ap.add_argument("--multi", action="store_true",
+                    help="store 9-channel main+front+side frames")
+    ap.add_argument("--out", default=None)
     args = ap.parse_args()
+    out = args.out or str(DATA_DIR / ("train_mv.npz" if args.multi else "train.npz"))
 
     cfg = load_config()
     gen = SceneGenerator(cfg, seed=args.seed)
@@ -90,6 +106,7 @@ def main() -> None:
     rng.shuffle(episodes)
 
     imgs, labels, ep_ids, states, auxs = [], [], [], [], []
+    frame_of = (lambda o: mv_frame(env, o)) if args.multi else _downsample
     t0, n_noise = time.time(), 0
     for ep, want in enumerate(episodes):
         spec, sol = verified_sample(gen, cfg, label=want)
@@ -98,7 +115,7 @@ def main() -> None:
 
         if expert.impossible:
             for _ in range(WANDER_STEPS):
-                imgs.append(_downsample(obs["rgb"]))
+                imgs.append(frame_of(obs["rgb"]))
                 labels.append(A["DECLARE_IMPOSSIBLE"])
                 ep_ids.append(ep)
                 states.append(env_state(env))
@@ -109,7 +126,7 @@ def main() -> None:
                 obs, _, term, trunc, info = env.step(act)
                 if term or trunc:
                     break
-            imgs.append(_downsample(obs["rgb"]))
+            imgs.append(frame_of(obs["rgb"]))
             labels.append(A["DECLARE_IMPOSSIBLE"])
             ep_ids.append(ep)
             states.append(env_state(env))
@@ -120,7 +137,7 @@ def main() -> None:
         for _ in range(cfg.actions.max_steps):
             st = env_state(env)
             label = expert.act(st[:3], st[3:])
-            imgs.append(_downsample(obs["rgb"]))
+            imgs.append(frame_of(obs["rgb"]))
             labels.append(label)
             ep_ids.append(ep)
             states.append(st)
@@ -146,11 +163,11 @@ def main() -> None:
     x = np.stack(imgs).astype(np.uint8)
     y = np.array(labels, dtype=np.int64)
     e = np.array(ep_ids, dtype=np.int64)
-    np.savez_compressed(args.out, images=x, labels=y, episodes=e,
+    np.savez_compressed(out, images=x, labels=y, episodes=e,
                         states=np.stack(states).astype(np.float32),
                         aux=np.array(auxs, dtype=np.float32))
     binc = np.bincount(y, minlength=14)
-    print(f"\nwrote {args.out}: {x.shape[0]} frames, {len(episodes)} episodes, "
+    print(f"\nwrote {out}: {x.shape} frames, {len(episodes)} episodes, "
           f"{n_noise} noise steps, {time.time()-t0:.0f}s")
     print("label counts:", dict(enumerate(binc.tolist())))
 

@@ -27,11 +27,12 @@ STATE_DIM = 7                       # world pos (3) + orientation quat (4)
 
 
 class PassageCNN(nn.Module):
-    def __init__(self, state_dim: int = 0) -> None:
+    def __init__(self, state_dim: int = 0, in_ch: int = 3) -> None:
         super().__init__()
         self.state_dim = state_dim
+        self.in_ch = in_ch
         self.conv = nn.Sequential(
-            nn.Conv2d(3, 32, 5, stride=2, padding=2), nn.ReLU(),    # 112
+            nn.Conv2d(in_ch, 32, 5, stride=2, padding=2), nn.ReLU(),  # 112
             nn.Conv2d(32, 64, 3, stride=2, padding=1), nn.ReLU(),   # 56
             nn.Conv2d(64, 128, 3, stride=2, padding=1), nn.ReLU(),  # 28
             nn.Conv2d(128, 128, 3, stride=2, padding=1), nn.ReLU(), # 14
@@ -57,9 +58,10 @@ class PassageCNN(nn.Module):
 
 
 def preprocess(rgb: np.ndarray) -> torch.Tensor:
-    """448x448 (or any) uint8 RGB -> normalized 1x3x128x128 float tensor."""
+    """uint8 HxWxC (C=3 single view, C=9 stacked multi-view, already at
+    IMG_SIZE for C>3) -> normalized 1xCxSxS float tensor."""
     from PIL import Image
-    if rgb.shape[0] != IMG_SIZE:
+    if rgb.shape[2] == 3 and rgb.shape[0] != IMG_SIZE:
         rgb = np.asarray(Image.fromarray(rgb).resize((IMG_SIZE, IMG_SIZE),
                                                      Image.LANCZOS))
     t = torch.from_numpy(rgb.copy()).permute(2, 0, 1).float() / 255.0
@@ -72,14 +74,16 @@ class BCAgent:
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         ckpt = torch.load(weights, map_location=self.device, weights_only=True)
         self.state_dim = int(ckpt.get("state_dim", 0))
-        self.model = PassageCNN(self.state_dim).to(self.device)
+        self.in_ch = int(ckpt.get("in_ch", 3))
+        self.model = PassageCNN(self.state_dim, self.in_ch).to(self.device)
         self.model.load_state_dict(ckpt["model"])
         self.model.eval()
         self.last_latency = 0.0
         with torch.no_grad():                                   # CUDA warmup
             s = (torch.zeros(1, self.state_dim, device=self.device)
                  if self.state_dim else None)
-            self.model(torch.zeros(1, 3, IMG_SIZE, IMG_SIZE, device=self.device), s)
+            self.model(torch.zeros(1, self.in_ch, IMG_SIZE, IMG_SIZE,
+                                   device=self.device), s)
 
     @torch.no_grad()
     def act(self, rgb: np.ndarray, state: np.ndarray | None = None) -> int:
