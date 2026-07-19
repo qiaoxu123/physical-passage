@@ -1,0 +1,25 @@
+{
+  "episodes": 12,
+  "success_rate": 0.0,
+  "collision_rate": 1.0,
+  "impossible_recall": 0.0,
+  "false_impossible_rate": 0.0,
+  "feasibility_accuracy": 0.8333,
+  "success_rate_feasible_levels": 0.0,
+  "avg_episode_length": 9.67,
+  "avg_min_clearance": -0.0283,
+  "by_label": {
+    "feasible": {
+      "n": 4,
+      "solved_rate": 0.0
+    },
+    "rotation_required": {
+      "n": 6,
+      "solved_rate": 0.0
+    },
+    "impossible": {
+      "n": 2,
+      "solved_rate": 0.0
+    }
+  }
+}

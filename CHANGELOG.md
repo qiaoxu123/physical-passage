@@ -17,3 +17,12 @@
 - PyBullet 碰撞 margin ~1e-2:孔内几何间隙 0.05 实测 0.04;成功判定用 clearance>0 已涵盖。
 - 求解器 MVP 版只搜"旋转到位→直穿"策略(单墙场景够用且精确);规格书 case 4/7(中途旋转、全局不可行)留待 Level 3+ 用完整 SE(3) A*。
 - 实测:oracle 30 episodes 全 PASS(可行 26/26 穿过、无解 4/4 正确 DECLARE),10 秒。
+
+## [0.2.0] - 2026-07-19
+### Features
+- 零样本 VLA baseline:`agents/vla_qwen.py`(Qwen2.5-VL-3B,动作菜单 prompt→动作词)+
+  `scripts/run_vla.py`(与 oracle 同 seed 同关卡同指标)。
+### Notes & Caveats
+- 结果:12/12 全败,行为 100% 塌缩 MOVE_FORWARD(不对齐/不旋转/不认输),碰撞率 1.0,
+  无解关召回 0。与 2D 版(0.07)一致且更彻底——3D 姿态/可行性推理零样本完全不具备。
+- 运行环境:需 transformers(habvln,已补装 pybullet);physpass 环境跑 oracle/测试。

@@ -28,15 +28,21 @@
 | 成功判定 | 整个 AABB 严格越过墙远面 + **全程(含 substep)零接触**;对 impossible 关输出 DECLARE_IMPOSSIBLE = 成功(+80) |
 | 相机 | **主输入 = 固定斜上方第三人称透视**(俯角 35°,448²);正/侧/俯三视图(256²)仅生成深度/碰撞标签,不喂模型。先固定视角验证物理能力,后续再随机化排除模板记忆 |
 
-## MVP 实测(oracle 专家,30 episodes,10 秒)
+## 实测:oracle 上限 vs 零样本 VLA baseline
 
-```
-success_rate            0.867   (26/26 可行关全部穿过)
-collision_rate          0.0
-feasibility_accuracy    1.0
-impossible_recall       1.0     (4/4 无解关全部正确 DECLARE)
-false_impossible_rate   0.0
-```
+| 指标 | oracle(30关) | **Qwen2.5-VL-3B 零样本(12关)** |
+|---|---|---|
+| 可行关成功率 | **26/26** | **0/8**(全部撞墙) |
+| 碰撞率 | 0.0 | **1.0** |
+| 无解关识别召回 | 1.0 | **0.0**(从不认输,径直撞墙) |
+| 单步延迟 | ~0 | 95 ms |
+
+零样本 VLA 的行为**100% 塌缩成 MOVE_FORWARD**:不对齐、不旋转、不认输,每关 9-10 步撞墙。
+它有"往前穿孔"的语义先验,但完全没有 3D 对齐/姿态/可行性推理——与 2D 版结论一致且更彻底
+(2D avoid 0.07,3D 直接 0)。这正是本实验台要制造的差距:**留给模仿学习/微调去填**
+(oracle 专家序列已就绪,复用 vla-dodge-lab S1/S2 方法论)。
+
+复现:`python scripts/run_vla.py --episodes 12`(需带 transformers 的环境,如 `habvln`)。
 
 ## 运行
 
