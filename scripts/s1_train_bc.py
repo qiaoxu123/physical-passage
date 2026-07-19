@@ -57,7 +57,9 @@ def main() -> None:
           f", aux={'on' if use_aux else 'off'}")
 
     def to_ds(mask):
-        xt = torch.from_numpy(x[mask]).permute(0, 3, 1, 2).float() / 255.0
+        # keep frames uint8 here; normalize per-batch in the loop (a full-set
+        # float copy of the 9-channel data would need ~26 GB RAM)
+        xt = torch.from_numpy(x[mask]).permute(0, 3, 1, 2).contiguous()
         return TensorDataset(xt, torch.from_numpy(s[mask]),
                              torch.from_numpy(aux[mask]),
                              torch.from_numpy(y[mask]))
@@ -83,7 +85,8 @@ def main() -> None:
         model.train()
         tot = n = 0.0
         for xb, sb, ab, yb in train_dl:
-            xb, sb, yb = xb.to(device), sb.to(device), yb.to(device)
+            xb = xb.to(device).float() / 255.0
+            sb, yb = sb.to(device), yb.to(device)
             opt.zero_grad()
             logits, aux_pred = model(xb, sb if use_proprio else None,
                                      with_aux=True)
@@ -101,7 +104,7 @@ def main() -> None:
         per = np.zeros((N_ACTIONS, 2), dtype=np.int64)     # [correct, total]
         with torch.no_grad():
             for xb, sb, _ab, yb in val_dl:
-                pred = model(xb.to(device),
+                pred = model(xb.to(device).float() / 255.0,
                              sb.to(device) if use_proprio else None).argmax(1).cpu()
                 correct += int((pred == yb).sum())
                 total += len(yb)
