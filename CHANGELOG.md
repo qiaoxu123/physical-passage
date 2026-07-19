@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.3.0] - 2026-07-19
+### Features(S1 行为克隆 + 反捷径测试)
+- 状态式闭环专家 `agents/expert.py`(四元数贪心旋转纠正+实时对齐重算,可重标注任意偏离状态)。
+- BC 全链:`s1_collect_bc_data.py`(DAgger-lite 噪声注入采集,14.5k 帧 @224²,存 /data)、
+  `s1_train_bc.py`(类别加权 CE + [dx,dz,rot_rem,feasible] 辅助回归)、`s1_eval_bc.py`、
+  `s1_dagger.py`、`make_bc_demo.py`;权重 `results/weights/bc_policy.pt`(3.6ms/步)。
+- **反捷径套件** `s1_anti_shortcut.py`(规格书第九节):尺寸外推 ±/相机抖动/颜色交换/临界孔六探针,
+  GT 全部求解器重验;结果 `results/metrics_anti_shortcut.json`。
+### Design Rationale
+- 探针只考"执行前可行性判断"(first-action DECLARE),因为这是 BC 唯一稳定学会的能力。
+### Notes & Caveats
+- 闭环:impossible 10/10(零误报),feasible 5/10,rotation 1/10。瓶颈已定位:专用几何回归网在
+  224² 斜视角图上只能做到 dx 6cm/dz 5cm/转角 10°(已收敛),而对齐需要 2.5cm/2.5° ——
+  单一固定斜视角的感知精度天花板,非训练技巧问题(DAgger 一轮无效,proprio 反而更差)。
+- 反捷径:baseline 1.0 / 尺寸×1.35 0.975 / ×0.70 1.0 / 相机抖动 1.0 / **颜色交换 0.50(捷径,
+  impossible 召回 0/20)** / **临界孔 0.575(差 1.5cm 的孔骗过它,召回 3/20)**。
+  结论:学到的是"颜色锚定的粗粒度尺寸比较",对尺度/视角迁移,但不是精确空间占据推理。
+- 未覆盖(需 Level 2 场景改造):真新形状(L 形/圆柱)、同投影不同深度、同起终点不同中间轨迹。
+
 ## [0.1.0] - 2026-07-19
 ### Features(MVP,规格书第十六节)
 - PyBullet+EGL 无头 3D 实验台:绿长方体穿红墙黄孔;14 离散动作(6平移+6旋转+STAY+**DECLARE_IMPOSSIBLE**)。

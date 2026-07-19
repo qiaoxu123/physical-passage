@@ -1,0 +1,56 @@
+{
+  "baseline": {
+    "impossible_recall": 1.0,
+    "false_declare_rate": 0.0,
+    "feasibility_accuracy": 1.0,
+    "imp_declared": 20,
+    "imp_total": 20,
+    "pos_declared": 0,
+    "pos_total": 20
+  },
+  "size-large-x1.35": {
+    "impossible_recall": 0.95,
+    "false_declare_rate": 0.0,
+    "feasibility_accuracy": 0.975,
+    "imp_declared": 19,
+    "imp_total": 20,
+    "pos_declared": 0,
+    "pos_total": 20
+  },
+  "size-small-x0.70": {
+    "impossible_recall": 1.0,
+    "false_declare_rate": 0.0,
+    "feasibility_accuracy": 1.0,
+    "imp_declared": 20,
+    "imp_total": 20,
+    "pos_declared": 0,
+    "pos_total": 20
+  },
+  "camera-jitter": {
+    "impossible_recall": 1.0,
+    "false_declare_rate": 0.0,
+    "feasibility_accuracy": 1.0,
+    "imp_declared": 20,
+    "imp_total": 20,
+    "pos_declared": 0,
+    "pos_total": 20
+  },
+  "color-swap": {
+    "impossible_recall": 0.0,
+    "false_declare_rate": 0.0,
+    "feasibility_accuracy": 0.5,
+    "imp_declared": 0,
+    "imp_total": 20,
+    "pos_declared": 0,
+    "pos_total": 20
+  },
+  "near-threshold": {
+    "impossible_recall": 0.15,
+    "false_declare_rate": 0.0,
+    "feasibility_accuracy": 0.575,
+    "imp_declared": 3,
+    "imp_total": 20,
+    "pos_declared": 0,
+    "pos_total": 20
+  }
+}

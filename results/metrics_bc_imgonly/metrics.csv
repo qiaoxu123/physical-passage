@@ -1,0 +1,2 @@
+episodes,success_rate,collision_rate,impossible_recall,false_impossible_rate,feasibility_accuracy,success_rate_feasible_levels,avg_episode_length,avg_min_clearance,feasible_n,feasible_solved_rate,rotation_required_n,rotation_required_solved_rate,impossible_n,impossible_solved_rate
+30,0.2,0.2333,1.0,0.0,1.0,0.3,38.13,0.2579,10,0.6,10,0.0,10,1.0
